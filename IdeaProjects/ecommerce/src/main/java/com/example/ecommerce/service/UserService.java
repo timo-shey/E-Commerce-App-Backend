@@ -3,6 +3,7 @@ package com.example.ecommerce.service;
 import com.example.ecommerce.dto.user.SignupDto;
 import com.example.ecommerce.dto.user.SignupResponseDto;
 import com.example.ecommerce.exceptions.CustomException;
+import com.example.ecommerce.model.AuthenticationToken;
 import com.example.ecommerce.model.User;
 import com.example.ecommerce.repository.UserRepository;
 import org.slf4j.Logger;
@@ -19,6 +20,8 @@ import java.util.Objects;
 public class UserService {
     @Autowired
     UserRepository userRepository;
+    @Autowired
+    AuthenticationService authenticationService;
 
     Logger logger = LoggerFactory.getLogger(UserService.class);
 
@@ -36,12 +39,14 @@ public class UserService {
 
         User user = new User(
                 signupDto.getFirstName(),
-                signupDto.getLastname(),
+                signupDto.getLastName(),
                 signupDto.getEmail(),
-                signupDto.getPassword()
+                encryptedPassword
                 );
         try {
             userRepository.save(user);
+            final AuthenticationToken authenticationToken =  new AuthenticationToken(user);
+            authenticationService.saveConfirmationToken(authenticationToken);
             return new SignupResponseDto("success", "user created successfully");
         } catch (Exception e) {
             throw new CustomException(e.getMessage());
