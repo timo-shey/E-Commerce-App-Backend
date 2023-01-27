@@ -1,6 +1,13 @@
 package com.example.ecommerce.service;
 
 import com.example.ecommerce.dto.Checkout.CheckoutItemDto;
+import com.example.ecommerce.dto.cart.CartDto;
+import com.example.ecommerce.dto.cart.CartItemDto;
+import com.example.ecommerce.model.Order;
+import com.example.ecommerce.model.OrderItem;
+import com.example.ecommerce.model.User;
+import com.example.ecommerce.repository.OrderItemsRepository;
+import com.example.ecommerce.repository.OrderRepository;
 import com.stripe.Stripe;
 import com.stripe.exception.StripeException;
 import com.stripe.model.checkout.Session;
@@ -11,6 +18,7 @@ import org.springframework.stereotype.Service;
 
 import javax.transaction.Transactional;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 
 @Service
@@ -22,6 +30,10 @@ public class OrderService {
     private String baseURL;
     @Value("${STRIPE_SECRET_KEY}")
     private String apiKey;
+    @Autowired
+    private OrderRepository orderRepository;
+    @Autowired
+    private OrderItemsRepository orderItemsRepository;
 
     SessionCreateParams.LineItem.PriceData createPriceData(CheckoutItemDto checkoutItemDto) {
         return SessionCreateParams.LineItem.PriceData.builder()
@@ -63,5 +75,31 @@ public class OrderService {
                 .setSuccessUrl(successURL)
                 .build();
         return Session.create(params);
+    }
+    public void placeOrder(User user, String sessionId) {
+        CartDto cartDto = cartService.listCartItems(user);
+
+        List<CartItemDto> cartItemDtoList = cartDto.getCartItems();
+
+        Order newOrder = new Order();
+        newOrder.setCreatedDate(new Date());
+        newOrder.setSessionId(sessionId);
+        newOrder.setUser(user);
+        newOrder.setTotalPrice(cartDto.getTotalCost());
+        orderRepository.save(newOrder);
+
+        for (CartItemDto cartItemDto : cartItemDtoList) {
+            OrderItem orderItem = new OrderItem();
+            orderItem.setCreatedDate(new Date());
+            orderItem.setPrice(cartItemDto.getProduct().getPrice());
+            orderItem.setProduct(cartItemDto.getProduct());
+            orderItem.setQuantity(cartItemDto.getQuantity());
+            orderItem.setOrder(newOrder);
+            orderItemsRepository.save(orderItem);
+        }
+        cartService.deleteUserCartItems(user);
+    }
+    public List<Order> listOfOrders(User user) {
+        return orderRepository.findAllByUserOrderByCreatedDateDesc(user);
     }
 }
