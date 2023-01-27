@@ -1,7 +1,11 @@
 package com.example.ecommerce.service;
 
+import com.example.ecommerce.config.MessageStrings;
+import com.example.ecommerce.dto.user.SignInDto;
+import com.example.ecommerce.dto.user.SignInResponseDto;
 import com.example.ecommerce.dto.user.SignupDto;
 import com.example.ecommerce.dto.user.SignupResponseDto;
+import com.example.ecommerce.exceptions.AuthenticationFailException;
 import com.example.ecommerce.exceptions.CustomException;
 import com.example.ecommerce.model.AuthenticationToken;
 import com.example.ecommerce.model.User;
@@ -59,5 +63,26 @@ public class UserService {
         byte[] digest = md.digest();
         return DatatypeConverter
                 .printHexBinary(digest).toUpperCase();
+    }
+
+    public SignInResponseDto signIn(SignInDto signInDto) throws AuthenticationFailException, CustomException {
+        User user = userRepository.findByEmail(signInDto.getEmail());
+        if (!Objects.nonNull(user)) {
+            throw new AuthenticationFailException("user not present");
+        }
+        try {
+            if (!user.getPassword().equals(hashPassword(signInDto.getPassword()))) {
+                throw new AuthenticationFailException(MessageStrings.WRONG_PASSWORD);
+            }
+        } catch (NoSuchAlgorithmException e) {
+            e.printStackTrace();
+            logger.error("hashing password failed {}", e.getMessage());
+            throw new CustomException(e.getMessage());
+        }
+        AuthenticationToken token = authenticationService.getToken(user);
+        if (!Objects.nonNull(token)) {
+            throw new CustomException(MessageStrings.AUTH_TOKEN_NOT_PRESENT);
+        }
+        return new SignInResponseDto("success", token.getToken());
     }
 }
