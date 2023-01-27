@@ -3,6 +3,7 @@ package com.example.ecommerce.service;
 import com.example.ecommerce.dto.Checkout.CheckoutItemDto;
 import com.example.ecommerce.dto.cart.CartDto;
 import com.example.ecommerce.dto.cart.CartItemDto;
+import com.example.ecommerce.exceptions.OrderNotFoundException;
 import com.example.ecommerce.model.Order;
 import com.example.ecommerce.model.OrderItem;
 import com.example.ecommerce.model.User;
@@ -101,5 +102,14 @@ public class OrderService {
     }
     public List<Order> listOfOrders(User user) {
         return orderRepository.findAllByUserOrderByCreatedDateDesc(user);
+    }
+    public Order getOrder(Integer orderId, User user) throws OrderNotFoundException {
+        Order order = orderRepository.findById(orderId).orElseThrow(
+                ()-> new OrderNotFoundException("The order does not exist")
+        );
+        if (order.getUser() != user) {
+            throw new OrderNotFoundException("order does not belong to user");
+        }
+        return order;
     }
 }

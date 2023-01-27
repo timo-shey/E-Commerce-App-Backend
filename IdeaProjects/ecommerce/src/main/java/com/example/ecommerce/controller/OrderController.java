@@ -4,6 +4,7 @@ import com.example.ecommerce.config.ApiResponse;
 import com.example.ecommerce.dto.Checkout.CheckoutItemDto;
 import com.example.ecommerce.dto.Checkout.StripResponse;
 import com.example.ecommerce.exceptions.AuthenticationFailException;
+import com.example.ecommerce.exceptions.OrderNotFoundException;
 import com.example.ecommerce.model.Order;
 import com.example.ecommerce.model.User;
 import com.example.ecommerce.service.AuthenticationService;
@@ -44,7 +45,16 @@ public class OrderController {
     public ResponseEntity<List<Order>> getAllOrders(@RequestParam("token") String token) throws AuthenticationFailException {
         authenticationService.authenticate(token);
         User user = authenticationService.getUser(token);
-        List<Order> orderDtoList = orderService.listOrders(user);
+        List<Order> orderDtoList = orderService.listOfOrders(user);
         return new ResponseEntity<>(orderDtoList, HttpStatus.OK);
+    }
+    @GetMapping("/{id}")
+    public ResponseEntity<Object> getOrderById(@PathVariable("id") Integer id,
+                                               @RequestParam("token") String token) throws AuthenticationFailException, OrderNotFoundException {
+        authenticationService.authenticate(token);
+        User user = authenticationService.getUser(token);
+
+        Order order = orderService.getOrder(id, user);
+        return new ResponseEntity<>(order, HttpStatus.OK);
     }
 }
