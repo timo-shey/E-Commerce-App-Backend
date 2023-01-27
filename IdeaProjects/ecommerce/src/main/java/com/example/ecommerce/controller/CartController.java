@@ -4,6 +4,7 @@ import com.example.ecommerce.config.ApiResponse;
 import com.example.ecommerce.dto.cart.AddToCartDto;
 import com.example.ecommerce.dto.cart.CartDto;
 import com.example.ecommerce.exceptions.AuthenticationFailException;
+import com.example.ecommerce.exceptions.CartItemsNotExistException;
 import com.example.ecommerce.exceptions.ProductNotExistException;
 import com.example.ecommerce.model.Product;
 import com.example.ecommerce.model.User;
@@ -47,15 +48,22 @@ public class CartController {
 
     @GetMapping("/")
     public ResponseEntity<CartDto> getCartItems(@RequestParam("token") String token) throws AuthenticationFailException {
-        // first authenticate the token
         authenticationService.authenticate(token);
 
-        // get the user
         User user = authenticationService.getUser(token);
 
-        // get items in the cart for the user.
         CartDto cartDto = cartService.listCartItems(user);
 
         return new ResponseEntity<CartDto>(cartDto,HttpStatus.OK);
+    }
+
+    @DeleteMapping("/delete/{cartItemId}")
+    public ResponseEntity<ApiResponse> deleteCartItem(@PathVariable("cartItemId") int cartItemId,
+                                                      @RequestParam("token") String token) throws AuthenticationFailException, CartItemsNotExistException {
+        authenticationService.authenticate(token);
+        User user = authenticationService.getUser(token);
+
+        cartService.deleteCartItem(cartItemId, user);
+        return new ResponseEntity<ApiResponse>(new ApiResponse(true, "Item has been removed"), HttpStatus.OK);
     }
 }
